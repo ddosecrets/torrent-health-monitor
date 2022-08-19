@@ -6,14 +6,26 @@ def loadTemplate():
 	with open("torrents.mako", "r") as f:
 		return f.read()
 
+FIELDS = ["name","magnet","hash","daily_trackers","weekly_trackers",
+	"monthly_trackers","daily_dht","weekly_dht","monthly_dht",
+	"daily_tracker_peers","weekly_tracker_peers","monthly_tracker_peers",
+	"daily_peers","weekly_peers","monthly_peers"]
+FIELDSTRING = ",".join(FIELDS)
+
 def loadSummary():
 	rows = []
 	with database() as (conn,c):
-		c.execute("SELECT name,magnet,recent,daily,weekly,monthly FROM summary ORDER BY daily")
+		#c.execute("""SELECT name,magnet,hash,daily_trackers,weekly_trackers,
+			#monthly_trackers,daily_dht,weekly_dht,monthly_dht,
+			#daily_tracker_peers,weekly_tracker_peers,monthly_tracker_peers,
+			#daily_peers,weekly_peers,monthly_peers FROM summary
+			#ORDER BY daily_peers""")
+		c.execute("SELECT "+FIELDSTRING+" FROM summary ORDER BY daily_peers")
 		res = c.fetchall()
-		for (name,magnet,recent,daily,weekly,monthly) in res:
-			row = {"name": name, "magnet": magnet, "recent": recent,
-				"daily": daily, "weekly": weekly, "monthly": monthly}
+		for r in res:
+			row = dict()
+			for i,n in enumerate(FIELDS):
+				row[n] = r[i]
 			rows.append(row)
 	return rows
 

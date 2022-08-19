@@ -10,20 +10,36 @@
 		<thead>
 			<th onclick="sortTable(0)">Name</th>
 			<th onclick="sortTable(1)">Magnet</th>
-			<th onclick="sortTable(2)">Recent Peers</th>
-			<th onclick="sortTable(3)">Daily Peers</th>
-			<th onclick="sortTable(4)">Weekly Peers</th>
-			<th onclick="sortTable(5)">Monthly Peers</th>
+			<th onclick="sortTable(2)">Daily Online Trackers</th>
+			<th onclick="sortTable(3)">Weekly Online Trackers</th>
+			<th onclick="sortTable(4)">Monthly Online Trackers</th>
+			<th onclick="sortTable(5)">Daily DHT Peers</th>
+			<th onclick="sortTable(6)">Weekly DHT Peers</th>
+			<th onclick="sortTable(7)">Monthly DHT Peers</th>
+			<th onclick="sortTable(8)">Daily Tracker Peers</th>
+			<th onclick="sortTable(9)">Weekly Tracker Peers</th>
+			<th onclick="sortTable(10)">Monthly Tracker Peers</th>
+			<th onclick="sortTable(11)">Daily Total Peers</th>
+			<th onclick="sortTable(12)">Weekly Total Peers</th>
+			<th onclick="sortTable(13)">Monthly Total Peers</th>
 		</thead>
 		<tbody>
 		% for row in torrents:
 		<tr>
 			<td><a href="https://ddosecrets.com/wiki/${row['name']}">${row["name"]}</a></td>
 			<td><a href="${row['magnet']}">LINK</a></td>
-			<td>${row["recent"]}</td>
-			<td>${row["daily"]}</td>
-			<td>${row["weekly"]}</td>
-			<td>${row["monthly"]}</td>
+			<td>${row["daily_trackers"]}</td>
+			<td>${row["weekly_trackers"]}</td>
+			<td>${row["monthly_trackers"]}</td>
+			<td>${row["daily_dht"]}</td>
+			<td>${row["weekly_dht"]}</td>
+			<td>${row["monthly_dht"]}</td>
+			<td>${row["daily_tracker_peers"]}</td>
+			<td>${row["weekly_tracker_peers"]}</td>
+			<td>${row["monthly_tracker_peers"]}</td>
+			<td>${row["daily_peers"]}</td>
+			<td>${row["weekly_peers"]}</td>
+			<td>${row["monthly_peers"]}</td>
 		</tr>
 		% endfor
 		</tbody>
