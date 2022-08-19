@@ -11,13 +11,7 @@ require 'base32'
 InfoHash = "614797344a302a0a909f312df68e918a158ae0ad"
 Trackers = ["udp://tracker.coppersurfer.tk:6969", "udp://9.rarbg.to:2920", "udp://tracker.opentrackr.org:1337", "udp://tracker.leechers-paradise.org:6969", "udp://exodus.desync.com:6969"]
 
-#InfoHash = "a5f4435322d88d35e82518e2f1534589f33b2dd6"
-#Trackers = File.read("list").split("\n")
-
-#InfoHash = "8cf92b7cd3f022fa5478b84963e89c1dd0af090f"
-#Trackers = ["http://tracker.nwps.ws:6969/announce", "http://tracker.winglai.com/announce", "http://fr33dom.h33t.com:3310/announce", "http://exodus.desync.com:6969/announce", "http://torrent.gresille.org/announce", "http://tracker.trackerfix.com/announce", "http://tracker.windsormetalbattery.com/announce", "http://torrent-tracker.ru/announce.php", "http://bigfoot1942.sektori.org:6969/announce", "http://tracker.best-torrents.net:6969/announce", "http://announce.torrentsmd.com:6969/announce", "http://tracker.thepiratebay.org/announce"]
-#Trackers = File.read("list2").split("\n")
-
+# Global constants for protocol commands, buffer sizes, timeouts
 Buffer_size = 2048
 UDP_action_connect = 0
 UDP_action_announce = 1
@@ -27,13 +21,18 @@ UDP_timeout = 5
 HTTP_listen_port = 1234
 HTTP_timeout = 20 # HTTP is a _lot_ slower than UDP
 
+# Torrent hashes from magnet links are presented in ascii, and that's how we
+# store them in the database. However, both tracker protocols want the info
+# hash as binary (escaped for HTTP, raw for UDP), so we decode them here.
+# Most torrent hashes are ascii-hex-encoded, but very old torrent software
+# uses base32 encoding instead. This is sinful, but we will support it.
 def decodeHash(info_hash)
 	if( info_hash.length == 40 ) # Hexadecimal
 		return [info_hash].pack("H*")
 	elsif( info_hash.length == 32 ) # Deprecated base32 encoding
 		return Base32.decode(info_hash)
 	else
-		throw "Invalid torrent info_hash encoding scheme!"
+		raise "Invalid torrent info_hash encoding scheme!"
 	end
 end
 
