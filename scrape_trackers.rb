@@ -9,6 +9,23 @@ require 'bencode'
 require 'base32'
 require_relative 'database'
 
+=begin
+	This script loads a list of torrents we are monitoring from a database,
+	queries each tracker for the torrent to discover peers, and collates those
+	lists to get a final peer count. It also determines how many trackers were
+	reachable, and how many weren't.
+
+	This script does *not* query the distributed hash table to find torrent
+	peers there. For that, see `scrape_dht.py`, but both sets of results are
+	written to the same database, so they are easily combined later.
+
+	NOTE: The only way we can get a list of peers from each tracker is to
+	indicate our own interest in each torrent. This means our own IP address
+	will be shown as a peer to anyone else downloading the torrent. For our
+	own bookkeeping we remove our IP address from the list of peers, but be
+	aware that this isn't passive observation.
+=end
+
 # Global constants for protocol commands, buffer sizes, timeouts
 Buffer_size = 2048
 UDP_action_connect = 0
@@ -129,11 +146,7 @@ end
 # just need to pluck the "ip" field from each, ignoring the "peer id" and
 # "port" fields
 def decodeDictionaryPeers(peers)
-	ips = []
-	for peer in peers
-		ips.append(peer["ip"])
-	end
-	return ips
+	peers.map{ |peer| peer["ip"] }
 end
 
 # In compact format, the peers are a binary string where each six bytes
@@ -164,7 +177,8 @@ end
 # NOTE: This is IPv4 only. The spec says to only show IPv4 addresses if we send
 # a v4 datagram, and v6 addresses if we send a v6, so scraping both requires
 # connecting twice and using the same peer_id so the tracker can tell we're the
-# same client.
+# same client. Since the server we're deploying this script on only has a v4
+# address, we'll consider this future work.
 def scrapeUDP(tracker, info_hash)
 	protocol_id = 0x41727101980 # Magic constant
 	decoded_hash = decodeHash(info_hash)
@@ -219,7 +233,6 @@ def scrapeUDP(tracker, info_hash)
 				(peer_ip,peer_port) = announce_response[start,stop].unpack("l>s>")
 				peer_ip_str = [peer_ip].pack("N").unpack("CCCC").join(".")
 				peer_ips.append(peer_ip_str)
-				#puts "Peer: #{peer_ip_str}"
 			end
 			return peer_ips
 		end
@@ -249,6 +262,8 @@ def getPublicIP()
 	end
 end
 
+# For a single tracker / info_hash, parse the tracker URL, determine whether
+# the tracker is HTTP or UDP and then call the corresponding scraper
 def scrapeTracker(tracker, info_hash)
 	# Magnet links sometimes have the trackers URL encoded
 	decoded = URI.decode_www_form(tracker)[0][0]
@@ -283,11 +298,14 @@ def scrapeTrackers(trackers, info_hash, public_ip: nil)
 		end
 	end
 	total_peers.delete?(public_ip)
-	#puts "Total peers #{total_peers.size}: #{total_peers}"
-	#puts "Total reachable trackers: #{reachable_trackers} / #{trackers.size}"
 	return [reachable_trackers, total_peers]
 end
 
+=begin
+	Get all torrent hashes in the database. For each, look up which trackers
+	the torrent uses. Query all appropriate trackers, collate results, and
+	save them back in the database.
+=end
 if __FILE__ == $0
 	public_ip = getPublicIP()
 	database do |conn|
