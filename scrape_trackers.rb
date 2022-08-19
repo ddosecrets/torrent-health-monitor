@@ -7,9 +7,7 @@ require 'socket'
 require 'timeout'
 require 'bencode'
 require 'base32'
-
-InfoHash = "614797344a302a0a909f312df68e918a158ae0ad"
-Trackers = ["udp://tracker.coppersurfer.tk:6969", "udp://9.rarbg.to:2920", "udp://tracker.opentrackr.org:1337", "udp://tracker.leechers-paradise.org:6969", "udp://exodus.desync.com:6969"]
+require_relative 'database'
 
 # Global constants for protocol commands, buffer sizes, timeouts
 Buffer_size = 2048
@@ -287,10 +285,17 @@ def scrapeTrackers(trackers, info_hash, public_ip: nil)
 	total_peers.delete?(public_ip)
 	#puts "Total peers #{total_peers.size}: #{total_peers}"
 	#puts "Total reachable trackers: #{reachable_trackers} / #{trackers.size}"
-	return (reachable_trackers, total_peers)
+	return [reachable_trackers, total_peers]
 end
 
 if __FILE__ == $0
 	public_ip = getPublicIP()
-	scrapeTrackers(Trackers, InfoHash, public_ip: public_ip)
+	database do |conn|
+		conn.prepare("load_trackers", "SELECT tracker FROM trackers WHERE info_hash=$1")
+		info_hashes = conn.exec("SELECT DISTINCT(hash) FROM torrents").to_a.map{ |r| r["hash"] }
+		info_hashes.each do |info_hash|
+			trackers = conn.exec_prepared("load_trackers", [info_hash]).to_a.flatten
+			(reachable_trackers, peers) = scrapeTrackers(trackers, info_hash, public_ip: public_ip)
+		end
+	end
 end
