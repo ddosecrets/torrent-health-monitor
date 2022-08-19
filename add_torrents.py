@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-import sys, re
-from torf import Magnet
+import sys, re, torf
 from database import database
 
 # Takes a CSV line, returns (torrent name, magnet, info hash)
@@ -24,11 +23,18 @@ def parseCSV(filename):
 def addTorrents(torrents):
 	with database() as (conn,c):
 		for (name,magnet,info_hash) in torrents:
-			c.execute("INSERT INTO torrents VALUES(%s,%s,%s) ON CONFLICT DO NOTHING", [name,magnet,info_hash])
-			print("Added %s => %s" % (name,info_hash))
-			m = Magnet.from_string(magnet)
-			for tracker in m.tr:
-				c.execute("INSERT INTO trackers VALUES(%s,%s) ON CONFLICT DO NOTHING", [info_hash, tracker])
+			try:
+				m = torf.Magnet.from_string(magnet)
+				c.execute("INSERT INTO torrents VALUES(%s,%s,%s) ON CONFLICT DO NOTHING", [name,magnet,info_hash])
+				print("Added %s => %s" % (name,info_hash))
+				for tracker in m.tr:
+					c.execute("INSERT INTO trackers VALUES(%s,%s) ON CONFLICT DO NOTHING", [info_hash, tracker])
+			except torf._errors.URLError as e:
+				sys.stderr.write("Invalid magnet link '%s' - skipping...\n" % magnet)
+				sys.stderr.write(str(e) + "\n")
+			except torf._errors.MagnetError as e:
+				sys.stderr.write("Invalid magnet link '%s' - skipping...\n" % magnet)
+				sys.stderr.write(str(e) + "\n")
 
 if __name__ == "__main__":
 	if( len(sys.argv) != 2 ):
