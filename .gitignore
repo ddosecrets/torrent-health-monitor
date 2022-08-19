@@ -1,0 +1,6 @@
+.postgrespassword
+.*.swp
+*.backup
+*.html
+*.csv
+__pycache__
