@@ -42,13 +42,8 @@ CREATE OR REPLACE VIEW monthly_peers (hash,peers)
 	WHERE epoch > EXTRACT(epoch FROM now()) - 2592000
 	GROUP BY hash;
 
-CREATE OR REPLACE VIEW most_recent_torrent_health (hash,peers)
-	AS SELECT hash,peers FROM torrent_health
-	INNER JOIN (SELECT hash,MAX(epoch) AS epoch FROM torrent_health GROUP BY hash) AS t1 USING (hash,epoch);
-
-CREATE OR REPLACE VIEW summary (name,magnet,hash,recent,daily,weekly,monthly)
-	AS SELECT name,magnet,torrents.hash,r.peers,COALESCE(d.peers,0),COALESCE(w.peers,0),COALESCE(m.peers,0) FROM torrents
-	LEFT JOIN most_recent_torrent_health AS r ON torrents.hash=r.hash
+CREATE OR REPLACE VIEW summary (name,magnet,hash,daily,weekly,monthly)
+	AS SELECT name,magnet,torrents.hash,COALESCE(d.peers,0),COALESCE(w.peers,0),COALESCE(m.peers,0) FROM torrents
 	LEFT JOIN daily_peers AS d ON torrents.hash=d.hash
 	LEFT JOIN weekly_peers AS w ON torrents.hash=w.hash
 	LEFT JOIN monthly_peers AS m ON torrents.hash=m.hash;
