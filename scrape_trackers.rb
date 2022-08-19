@@ -6,6 +6,7 @@ require 'net/http'
 require 'socket'
 require 'timeout'
 require 'bencode'
+require 'base32'
 
 InfoHash = "614797344a302a0a909f312df68e918a158ae0ad"
 Trackers = ["udp://tracker.coppersurfer.tk:6969", "udp://9.rarbg.to:2920", "udp://tracker.opentrackr.org:1337", "udp://tracker.leechers-paradise.org:6969", "udp://exodus.desync.com:6969"]
@@ -26,6 +27,16 @@ UDP_timeout = 5
 HTTP_listen_port = 1234
 HTTP_timeout = 20 # HTTP is a _lot_ slower than UDP
 
+def decodeHash(info_hash)
+	if( info_hash.length == 40 ) # Hexadecimal
+		return [info_hash].pack("H*")
+	elsif( info_hash.length == 32 ) # Deprecated base32 encoding
+		return Base32.decode(info_hash)
+	else
+		throw "Invalid torrent info_hash encoding scheme!"
+	end
+end
+
 # HTTP announce protocol is described (kinda) at
 # https://www.bittorrent.org/beps/bep_0003.html
 # and is amended by a secondary spec at
@@ -37,7 +48,7 @@ HTTP_timeout = 20 # HTTP is a _lot_ slower than UDP
 # four-datagram minimal-parsing UDP tracker protocol that supersedes this one.
 def scrapeHTTP(tracker, info_hash)
 	peer_id = Random.bytes(20)
-	decoded_hash = [info_hash].pack("H*") # Switch from hex string to sha1 bytes
+	decoded_hash = decodeHash(info_hash)
 	params = {:info_hash => decoded_hash, :peer_id => peer_id,
 		:port => HTTP_listen_port, :uploaded => 0, :downloaded => 0, :left => 0}
 	tracker.query = URI.encode_www_form(params)
@@ -159,7 +170,7 @@ end
 # same client.
 def scrapeUDP(tracker, info_hash)
 	protocol_id = 0x41727101980 # Magic constant
-	decoded_hash = [info_hash].pack("H*") # Switch from hex string to sha1 bytes
+	decoded_hash = decodeHash(info_hash)
 	peer_id = Random.bytes(20)
 	transaction_id = Random.bytes(4).unpack("l")[0]
 	connection_id = 0
