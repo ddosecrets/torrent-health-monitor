@@ -6,6 +6,8 @@ This software suite takes a list of torrents, and for each periodically checks t
 
 We identify the number of peers for each torrent, but not the number of seeds. It isn't possible to determine confidently that a peer is a seed without connecting to every peer directly and asking them what chunks of the torrent they have available, and even then, we can't prove that they're telling the truth without actually _downloading_ all those chunks. Torrent trackers maintain a "seed" count, but this is self-reported by torrent clients, so it's unreliable. Trackers also don't tell us _which_ peers reported themselves as seeds, so we can't aggregate the seed counts across multiple trackers. Therefore, we discard the leecher/seeder distinction and just track unique IP addresses that have indicated interest in a torrent.
 
+We _also_ won't identify peers through [peer exchange](https://en.wikipedia.org/wiki/Peer_exchange), since PEX is only possible when actively connecting to known peers. However, anyone downloading a torrent can only use PEX once they've identified some starting peers through trackers or the DHT, so ignoring PEX is actually appropriate when gauging the availability of a torrent.
+
 ### Dependencies
 
 For Ruby:
