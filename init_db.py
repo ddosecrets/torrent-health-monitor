@@ -7,16 +7,22 @@ CREATE TABLE IF NOT EXISTS torrents(
 	magnet TEXT,
 	hash TEXT PRIMARY KEY);
 
-CREATE TABLE IF NOT EXISTS torrent_health(
+CREATE TABLE IF NOT EXISTS trackers(
+	hash TEXT,
+	tracker TEXT,
+	UNIQUE(hash,tracker));
+
+CREATE TABLE IF NOT EXISTS tracker_availability(
 	hash TEXT,
 	epoch INT,
-	peers INT,
-	UNIQUE(hash,epoch));
+	tracker TEXT,
+	UNIQUE(hash,epoch,tracker));
 
 CREATE TABLE IF NOT EXISTS peers(
 	hash TEXT,
 	epoch INT,
 	hashed_ip TEXT,
+	dht BOOLEAN,
 	UNIQUE(hash,epoch,hashed_ip));
 
 CREATE INDEX IF NOT EXISTS time_idx ON peers (hash,epoch);

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys, re
+from torf import Magnet
 from database import database
 
 # Takes a CSV line, returns (torrent name, magnet, info hash)
@@ -25,6 +26,9 @@ def addTorrents(torrents):
 		for (name,magnet,info_hash) in torrents:
 			c.execute("INSERT INTO torrents VALUES(%s,%s,%s) ON CONFLICT DO NOTHING", [name,magnet,info_hash])
 			print("Added %s => %s" % (name,info_hash))
+			m = Magnet.from_string(magnet)
+			for tracker in m.tr:
+				c.execute("INSERT INTO trackers VALUES(%s,%s) ON CONFLICT DO NOTHING", [info_hash, tracker])
 
 if __name__ == "__main__":
 	if( len(sys.argv) != 2 ):

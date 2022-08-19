@@ -49,8 +49,7 @@ def logPeers(torrentPeers):
 		for info_hash in torrentPeers.keys():
 			num_peers = len(torrentPeers[info_hash])
 			for peer in torrentPeers[info_hash]:
-				c.execute("INSERT INTO peers VALUES(%s,%s,%s)", [info_hash,epoch,peer])
-			c.execute("INSERT INTO torrent_health VALUES(%s,%s,%s)", [info_hash,epoch,num_peers])
+				c.execute("INSERT INTO peers VALUES(%s,%s,%s,%s)", [info_hash,epoch,peer,True])
 
 def main():
 	dht = btdht.DHT(id=ID.encode("ascii"), bind_port=BIND_PORT)
