@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import btdht, binascii, hashlib, time, base64
+import os, btdht, binascii, hashlib, time, base64
 from database import database
 
 """
@@ -12,7 +12,6 @@ from database import database
 
 STARTUP_DELAY = 60 # How long to wait for the DHT to peer before querying
 INTERVAL_DELAY = 300 # Poll again every 5 minutes
-SALT = "uQPTQA35GFjdQuHR1ffkFQVzRMqyvdK9O2HuErUYR3BSnd4DZc2ilQsNo64CWYDHd4Mq6X7WKE3ZidZjHOfCxWjyKK6wicRy7gGvIDkXBruUQmPunASwSESCReSMdF2kfQdkqRRwfiSN9tWA0QZbjZhp9WLRtY0wZHMKcIeteOVV08R2uURw59JOf1GHc10Pe56S8QFG"
 ID = "r9T5uUAuTG00hwKyBkZw"
 BIND_PORT = 2987
 
@@ -32,13 +31,13 @@ def hashToBinary(info_hash):
 		raise ValueError("Torrent info hash '%s' is invalid" % info_hash)
 
 # Returns a list of hashed IP addresses peered with a torrent
-def getPeers(dht, info_hash):
+def getPeers(dht, info_hash, salt):
 	peers = dht.get_peers(hashToBinary(info_hash))
 	if( peers == None ):
 		return set()
 	hashed_peers = set()
 	for (ip,port) in peers:
-		peer = (ip+SALT).encode("ascii")
+		peer = (ip+salt).encode("ascii")
 		m = hashlib.sha256(peer).hexdigest()
 		hashed_peers.add(m)
 	return hashed_peers
@@ -51,16 +50,23 @@ def logPeers(torrentPeers):
 			for peer in torrentPeers[info_hash]:
 				c.execute("INSERT INTO peers VALUES(%s,%s,%s,%s)", [info_hash,epoch,peer,True])
 
+def loadSalt(filename=None):
+	if( filename == None ):
+		filename = os.path.dirname(os.path.realpath(__file__)) + "/.salt"
+	with open(filename, "r") as f:
+		return f.read()
+
 def main():
 	dht = btdht.DHT(id=ID.encode("ascii"), bind_port=BIND_PORT)
 	dht.start()
+	salt = loadSalt()
 	print("DHT created, waiting to peer...")
 	time.sleep(STARTUP_DELAY)
 	while( True ):
 		hashes = getTorrentHashes()
 		torrentPeers = dict()
 		for info_hash in hashes:
-			torrentPeers[info_hash] = getPeers(dht, info_hash)
+			torrentPeers[info_hash] = getPeers(dht, info_hash, salt)
 			print("Found %3d peers for %s" % (len(torrentPeers[info_hash]), info_hash))
 		logPeers(torrentPeers)
 		print("Sleeping before next poll")

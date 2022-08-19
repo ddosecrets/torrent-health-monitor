@@ -7,6 +7,7 @@ require 'socket'
 require 'timeout'
 require 'bencode'
 require 'base32'
+require 'digest'
 require_relative 'database'
 
 =begin
@@ -97,7 +98,7 @@ def scrapeHTTP(tracker, info_hash)
 				decoded = BEncode.load(res.body[0,res.body.length-1])
 			end
 			if( decoded.has_key?("failure reason") )
-				puts "Error from #{tracker.host}: #{decoded["failure reason"]}"
+				$stderr.write("Error from #{tracker.host}: #{decoded["failure reason"]}\n")
 				return nil
 			end
 
@@ -108,7 +109,7 @@ def scrapeHTTP(tracker, info_hash)
 			# ignore us and give whatever format they prefer. Since we have to
 			# support both formats anyway, might as well let the server pick
 			# and not bother setting the 'compact' flag.
-			puts decoded
+			$stderr.write(decoded + "\n")
 			if( decoded["peers"].class == String )
 				return decodeCompactPeers(decoded["peers"])
 			else
@@ -116,28 +117,28 @@ def scrapeHTTP(tracker, info_hash)
 			end
 		end
 	rescue BEncode::DecodeError
-		puts "Invalid response from #{tracker.host}"
+		$stderr.write("Invalid response from #{tracker.host}\n")
 		return nil
 	rescue StandardError
-		puts "Invalid response from #{tracker.host}"
+		$stderr.write("Invalid response from #{tracker.host}\n")
 		return nil
 	rescue Timeout::Error
-		puts "Timeout contacting #{tracker.host}"
+		$stderr.write("Timeout contacting #{tracker.host}\n")
 		return nil
 	rescue Errno::ECONNREFUSED
-		puts "Connection refused at #{tracker.host}"
+		$stderr.write("Connection refused at #{tracker.host}\n")
 		return nil
 	rescue Errno::ENETUNREACH
-		puts "Unable to reach network of #{tracker.host}"
+		$stderr.write("Unable to reach network of #{tracker.host}\n")
 		return nil
 	rescue SocketError
-		puts "Could not resolve tracker at #{tracker.host}"
+		$stderr.write("Could not resolve tracker at #{tracker.host}\n")
 		return nil
 	rescue OpenSSL::SSL::SSLError
 		# We could blindly trust the cert and connect anyway, but torrent
 		# clients probably won't, so for all intents and purposes this tracker
 		# is offline
-		puts "Invalid TLS certificate at #{tracker.host}"
+		$stderr.write("Invalid TLS certificate at #{tracker.host}\n")
 		return nil
 	end
 end
@@ -200,7 +201,7 @@ def scrapeUDP(tracker, info_hash)
 			response = s.recv(Buffer_size)
 			(_, response_id, connection_id) = response.unpack("l>l>q>")
 			if( response_id != transaction_id )
-				puts "Got unexpected response id #{response_id} to our #{transaction_id}"
+				$stderr.write("Got unexpected response id #{response_id} to our #{transaction_id}\n")
 			end
 
 			# Now we can send our announce request, using the authorized connection_id
@@ -214,7 +215,7 @@ def scrapeUDP(tracker, info_hash)
 			# The first 20 bytes are metadata, the rest are seed information
 			announce_response = s.recv(Buffer_size)
 			(announce_action, announce_tid, interval, leechers, seeders) = announce_response[0,20].unpack("l>l>l>l>l>")
-			printf("Heard back from '#{tracker}'! %d leechers, %d seeders\n", leechers, seeders)
+			#printf("Heard back from '#{tracker}'! %d leechers, %d seeders\n", leechers, seeders)
 			peers = leechers+seeders
 
 			# The spec is a little... ambiguous here. Some trackers seem to include
@@ -227,7 +228,7 @@ def scrapeUDP(tracker, info_hash)
 				start = 20 + 6*i
 				stop = start+6
 				if( announce_response.length < stop )
-					puts "Peer data block ends prematurely! Tracker is not following spec!"
+					$stderr.write("Peer data block ends prematurely! Tracker is not following spec!\n")
 					return peer_ips
 				end
 				(peer_ip,peer_port) = announce_response[start,stop].unpack("l>s>")
@@ -237,13 +238,13 @@ def scrapeUDP(tracker, info_hash)
 			return peer_ips
 		end
 	rescue Timeout::Error
-		puts "Timeout connecting to #{tracker}"
+		$stderr.write("Timeout connecting to #{tracker}\n")
 		return nil
 	rescue SocketError
-		puts "Could not resolve tracker at #{tracker.host}"
+		$stderr.write("Could not resolve tracker at #{tracker.host}\n")
 		return nil
 	rescue Errno::ECONNREFUSED
-		puts "Could not connect via UDP to #{tracker.host}"
+		$stderr.write("Could not connect via UDP to #{tracker.host}\n")
 		return nil
 	ensure
 		s.close
@@ -284,21 +285,31 @@ end
 # if provided. Returns (number of trackers we reached, {set of peer IP addresses})
 def scrapeTrackers(trackers, info_hash, public_ip: nil)
 	total_peers = Set.new
-	reachable_trackers = 0
+	reachable_trackers = Set.new
 	threads = []
 	trackers.each { |tracker|
-		threads << Thread.new { Thread.current[:peers] = scrapeTracker(tracker, info_hash) }
+		threads << Thread.new {
+			Thread.current[:tracker] = tracker
+			Thread.current[:peers] = scrapeTracker(tracker, info_hash)
+		}
 	}
 	threads.each do |t|
 		t.join
 		unless t[:peers].nil?
-			reachable_trackers += 1
-			puts "Found peers: #{t[:peers]}"
+			reachable_trackers.add(t[:tracker])
 			total_peers = total_peers.union(t[:peers])
 		end
 	end
 	total_peers.delete?(public_ip)
 	return [reachable_trackers, total_peers]
+end
+
+# Load salt shared with Python to anonymize peer IP addresses
+def loadSalt(filename: nil)
+	if( filename.nil? )
+		filename = File.dirname(__FILE__) + "/.salt"
+	end
+	return File.read(filename)
 end
 
 =begin
@@ -308,12 +319,22 @@ end
 =end
 if __FILE__ == $0
 	public_ip = getPublicIP()
+	salt = loadSalt()
 	database do |conn|
-		conn.prepare("load_trackers", "SELECT tracker FROM trackers WHERE info_hash=$1")
+		conn.prepare("load_trackers", "SELECT tracker FROM trackers WHERE hash=$1")
+		conn.prepare("seen_tracker", "INSERT INTO tracker_availability VALUES($1,EXTRACT(epoch FROM now()),$2)")
+		conn.prepare("seen_peer", "INSERT INTO peers VALUES($1,EXTRACT(epoch FROM now()),$2,false)")
 		info_hashes = conn.exec("SELECT DISTINCT(hash) FROM torrents").to_a.map{ |r| r["hash"] }
 		info_hashes.each do |info_hash|
-			trackers = conn.exec_prepared("load_trackers", [info_hash]).to_a.flatten
+			trackers = conn.exec_prepared("load_trackers", [info_hash]).to_a.map{ |r| r["tracker"] }
 			(reachable_trackers, peers) = scrapeTrackers(trackers, info_hash, public_ip: public_ip)
+			reachable_trackers.each { |tracker|
+				conn.exec_prepared("seen_tracker", [info_hash,tracker])
+			}
+			peers.each { |peer|
+				conn.exec_prepared("seen_peer", [info_hash,Digest::SHA2.hexdigest(peer+salt)])
+			}
+			puts "#{info_hash}: #{reachable_trackers.length}/#{trackers.length} trackers, #{peers.length} peers"
 		end
 	end
 end
