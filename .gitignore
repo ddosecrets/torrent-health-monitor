@@ -1,5 +1,4 @@
-.postgrespassword
-.salt
+config.json
 .*.swp
 *.backup
 *.html

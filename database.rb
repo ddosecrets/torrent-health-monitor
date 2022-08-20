@@ -14,11 +14,12 @@
 	automatically close the database connection when the block ends.
 =end
 
-require "pg"
+require 'pg'
+require 'json'
 
 def database()
-	password = File.read(File.dirname(__FILE__) + "/.postgrespassword").rstrip()
-	conn = PG.connect :dbname => "torrent_health", :user => "ddosecrets", :password => password
+	config = JSON.parse(File.read(File.dirname(__FILE__) + "/config.json"))
+	conn = PG.connect :dbname => config["dbname"], :user => config["dbuser"], :password => config["dbpass"]
 	yield conn
 ensure
 	conn.close() if conn
@@ -26,7 +27,7 @@ end
 
 # WARNING: does *not* auto-close the connection, use with caution!
 def open_database()
-	password = File.read(File.dirname(__FILE__) + "/.postgrespassword").rstrip()
-	conn = PG.connect :dbname => "torrent_health", :user => "ddosecrets", :password => password
+	config = JSON.parse(File.read(File.dirname(__FILE__) + "/config.json"))
+	conn = PG.connect :dbname => config["dbname"], :user => config["dbuser"], :password => config["dbpass"]
 	return conn
 end

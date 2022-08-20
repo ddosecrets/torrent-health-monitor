@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime
+import datetime, json, os
 from mako.template import Template
 from database import database
 
@@ -36,7 +36,9 @@ def loadSummary():
 	return (mostrecent, rows)
 
 def writeHTML(html):
-	with open("index.html", "w") as f:
+	with open(os.path.dirname(os.path.realpath(__file__)) + "/config.json", "r") as f:
+		config = json.loads(f.read())
+	with open(config["exportpath"], "w") as f:
 		f.write(html)
 
 if __name__ == "__main__":

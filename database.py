@@ -11,23 +11,20 @@
 		rows = cursor.fetchall()
 '''
 
-import psycopg2, os
-
-DBNAME = "torrent_health"
-DBUSER = "ddosecrets"
+import psycopg2, os, json, sys
 
 class database:
 	def __enter__(self):
 		try:
-			password = None
-			with open(os.path.dirname(os.path.realpath(__file__)) + "/.postgrespassword", "r") as f:
-				password = f.read().rstrip()
-			connect_str = "dbname='%s' user='%s' host='localhost' password='%s'" % (DBNAME, DBUSER, password)
+			config = None
+			with open(os.path.dirname(os.path.realpath(__file__)) + "/config.json", "r") as f:
+				config = json.loads(f.read())
+			connect_str = "dbname='%s' user='%s' host='localhost' password='%s'" % (config["dbname"], config["dbuser"], config["dbpass"])
 			self.conn = psycopg2.connect(connect_str)
 			self.cursor = self.conn.cursor()
 			return (self.conn, self.cursor)
 		except Exception as e:
-			print("ERROR could not connect to postgres! " + str(e))
+			sys.stderr.write("ERROR could not connect to postgres! " + str(e) + "\n")
 	def __exit__(self, type_, value, traceback):
 		self.conn.commit() # Flush changes to postgres if not already done
 		self.cursor.close()
@@ -38,12 +35,12 @@ class database:
 # Returns (conn, cursor)
 def open_database():
 	try:
-		password = None
-		with open(os.path.dirname(os.path.realpath(__file__)) + "/.postgrespassword", "r") as f:
-			password = f.read().rstrip()
-		connect_str = "dbname='%s' user='%s' host='localhost' password='%s'" % (DBNAME, DBUSER, password)
+		config = None
+		with open(os.path.dirname(os.path.realpath(__file__)) + "/config.json", "r") as f:
+			config = json.loads(f.read())
+		connect_str = "dbname='%s' user='%s' host='localhost' password='%s'" % (config["dbname"], config["dbuser"], config["dbpass"])
 		conn = psycopg2.connect(connect_str)
 		cursor = conn.cursor()
 		return (conn, cursor)
 	except Exception as e:
-		print("ERROR could not connect to postgres! " + str(e))
+		sys.stderr.write("ERROR could not connect to postgres! " + str(e) + "\n")
