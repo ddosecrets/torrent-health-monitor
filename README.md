@@ -20,4 +20,22 @@ For Python:
 
 ### Deployment Instructions
 
-Pending...
+To install:
+
+1. First install postgresql, and create a database and sql user for this application. Set the database name, username, and password in `config.json`.
+
+2. Run `./init_db.py` once to initialize all tables and views.
+
+3. Create a long (200+ characters) random string, and set it as `salt` in `config.json`.
+
+4. Add cronjobs to run `scrape_dht.py`, `scrape_torrents.rb`, and `export_html.py` at regular intervals. Hourly should be fine. For example, run `crontab -e` and add the following lines:
+
+```
+0 * * * * /path/to/installation/scrape_dht.py
+0 * * * * /path/to/installation/scrape_trackers.py
+20 * * * * /path/to/installation/export_html.py
+```
+
+5. Add any torrents you want to monitor, either individually via `./add_torrent.py`, or as a CSV file (with header) of `torrent_name,magnet_link` on each line.
+
+The application will now check the DHT and trackers for each torrent each hour, and twenty minutes later will write a new HTML file containing the latest results. This twenty minute delay ensures that the scraping scripts have time to finish, so the HTML page will list the most recent results, rather than those an hour old.
