@@ -26,14 +26,14 @@ def addTorrents(torrents):
 			try:
 				m = torf.Magnet.from_string(magnet)
 				c.execute("INSERT INTO torrents VALUES(%s,%s,%s) ON CONFLICT DO NOTHING", [name,magnet,info_hash])
-				print("Added %s => %s" % (name,info_hash))
+				#print("Added %s => %s" % (name,info_hash))
 				for tracker in m.tr:
 					c.execute("INSERT INTO trackers VALUES(%s,%s) ON CONFLICT DO NOTHING", [info_hash, tracker])
 			except torf._errors.URLError as e:
-				sys.stderr.write("Invalid magnet link '%s' - skipping...\n" % magnet)
+				sys.stderr.write("Invalid magnet link for '%s': '%s' - skipping...\n" % (name,magnet))
 				sys.stderr.write(str(e) + "\n")
 			except torf._errors.MagnetError as e:
-				sys.stderr.write("Invalid magnet link '%s' - skipping...\n" % magnet)
+				sys.stderr.write("Invalid magnet link for '%s': '%s' - skipping...\n" % (name,magnet))
 				sys.stderr.write(str(e) + "\n")
 
 if __name__ == "__main__":
