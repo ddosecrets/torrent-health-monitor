@@ -216,6 +216,10 @@ def scrapeUDP(tracker, info_hash)
 			announce_response = s.recv(Buffer_size)
 			(announce_action, announce_tid, interval, leechers, seeders) = announce_response[0,20].unpack("l>l>l>l>l>")
 			#printf("Heard back from '#{tracker}'! %d leechers, %d seeders\n", leechers, seeders)
+			if( leechers.nil? or seeders.nil? )
+				$stderr.write("Got malformed response from '#{tracker}'")
+				return nil
+			end
 			peers = leechers+seeders
 
 			# The spec is a little... ambiguous here. Some trackers seem to include
@@ -306,10 +310,7 @@ end
 
 # Load salt shared with Python to anonymize peer IP addresses
 def loadSalt(filename: nil)
-	if( filename.nil? )
-		filename = File.dirname(__FILE__) + "/.salt"
-	end
-	return File.read(filename)
+	return JSON.parse(File.read(File.dirname(__FILE__)+"/config.json"))["salt"]
 end
 
 =begin
