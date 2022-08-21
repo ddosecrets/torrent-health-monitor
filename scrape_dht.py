@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, btdht, binascii, hashlib, time, base64
+import os, btdht, binascii, hashlib, time, base64, json
 from database import database
 
 """
@@ -10,8 +10,7 @@ from database import database
 	database, then exits.
 """
 
-STARTUP_DELAY = 60 # How long to wait for the DHT to peer before querying
-INTERVAL_DELAY = 300 # Poll again every 5 minutes
+STARTUP_DELAY = 120 # How long to wait for the DHT to peer before querying
 ID = "r9T5uUAuTG00hwKyBkZw"
 BIND_PORT = 2987
 
@@ -50,13 +49,13 @@ def logPeers(torrentPeers):
 			for peer in torrentPeers[info_hash]:
 				c.execute("INSERT INTO peers VALUES(%s,%s,%s,%s)", [info_hash,epoch,peer,True])
 
-def loadSalt(filename=None):
-	if( filename == None ):
-		filename = os.path.dirname(os.path.realpath(__file__)) + "/.salt"
-	with open(filename, "r") as f:
-		return f.read()
+def loadSalt():
+	config = None
+	with open(os.path.dirname(os.path.realpath(__file__)) + "/config.json", "r") as f:
+		config = json.loads(f.read())
+	return config["salt"]
 
-def main():
+if __name__ == "__main__":
 	dht = btdht.DHT(id=ID.encode("ascii"), bind_port=BIND_PORT)
 	dht.start()
 	salt = loadSalt()
@@ -69,10 +68,3 @@ def main():
 			torrentPeers[info_hash] = getPeers(dht, info_hash, salt)
 			print("Found %3d peers for %s" % (len(torrentPeers[info_hash]), info_hash))
 		logPeers(torrentPeers)
-		print("Sleeping before next poll")
-		time.sleep(INTERVAL_DELAY)
-
-if __name__ == "__main__":
-	print("Starting in debug mode, attached to terminal.")
-	print("To run in production, run 'start_daemon.py'.")
-	main()

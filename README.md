@@ -16,7 +16,7 @@ For Ruby:
 
 For Python:
 
-    pip install psycopg2 mako btdht daemonize torf
+    pip install psycopg2 mako btdht torf
 
 ### Deployment Instructions
 
@@ -33,9 +33,9 @@ To install:
 ```
 0  * * * * /path/to/installation/scrape_dht.py
 0  * * * * /path/to/installation/scrape_trackers.py
-20 * * * * /path/to/installation/export_html.py
+*/10 * * * * /path/to/installation/export_html.py
 ```
 
 5. Add any torrents you want to monitor, either individually via `./add_torrent.py`, or as a CSV file (with header) of `torrent_name,magnet_link` on each line.
 
-The application will now check the DHT and trackers for each torrent each hour, and twenty minutes later will write a new HTML file containing the latest results. This twenty minute delay ensures that the scraping scripts have time to finish, so the HTML page will list the most recent results, rather than those an hour old.
+The application will now check the DHT and trackers for each torrent each hour, and every ten minutes will write a new HTML file containing the latest results. Re-exporting the results every 10 minutes means we aren't relying on careful timing to export right after the scraping scripts finish, ensuring the HTML page will list the most recent results, rather than those an hour old.
