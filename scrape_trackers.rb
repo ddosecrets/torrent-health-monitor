@@ -250,6 +250,9 @@ def scrapeUDP(tracker, info_hash)
 	rescue Errno::ECONNREFUSED
 		$stderr.write("Could not connect via UDP to #{tracker.host}\n")
 		return nil
+	rescue Errno::EHOSTUNREACH
+		$stderr.write("Could not connect via UDP to #{tracker.host}\n")
+		return nil
 	ensure
 		s.close
 	end
