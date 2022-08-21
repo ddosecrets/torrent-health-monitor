@@ -16,7 +16,7 @@ For Ruby:
 
 For Python:
 
-    pip install psycopg2 mako btdht daemonize
+    pip install psycopg2 mako btdht daemonize torf
 
 ### Deployment Instructions
 
@@ -31,8 +31,8 @@ To install:
 4. Add cronjobs to run `scrape_dht.py`, `scrape_torrents.rb`, and `export_html.py` at regular intervals. Hourly should be fine. For example, run `crontab -e` and add the following lines:
 
 ```
-0 * * * * /path/to/installation/scrape_dht.py
-0 * * * * /path/to/installation/scrape_trackers.py
+0  * * * * /path/to/installation/scrape_dht.py
+0  * * * * /path/to/installation/scrape_trackers.py
 20 * * * * /path/to/installation/export_html.py
 ```
 
