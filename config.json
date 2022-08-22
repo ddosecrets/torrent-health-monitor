@@ -1,0 +1,7 @@
+{
+	"dbname": "postgres database name",
+	"dbuser": "postgres username",
+	"dbpass": "postgres password",
+	"salt": "put a long random string here",
+	"exportpath": "index.html"
+}
