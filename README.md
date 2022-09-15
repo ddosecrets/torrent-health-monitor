@@ -32,7 +32,7 @@ To install:
 
 ```
 0  * * * * /path/to/installation/scrape_dht.py
-0  * * * * /path/to/installation/scrape_trackers.py
+0  * * * * /path/to/installation/scrape_trackers.rb
 */10 * * * * /path/to/installation/export_html.py
 ```
 
