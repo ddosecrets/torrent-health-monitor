@@ -34,6 +34,7 @@ To install:
 0  * * * * /path/to/installation/scrape_dht.py
 0  * * * * /path/to/installation/scrape_trackers.rb
 */10 * * * * /path/to/installation/export_html.py
+*/10 * * * * /path/to/installation/remove_old.py
 ```
 
 5. Add any torrents you want to monitor, either individually via `./add_torrent.py`, or as a CSV file (with header) of `torrent_name,magnet_link` on each line.
