@@ -35,7 +35,7 @@
 				<tbody>
 				% for row in torrents:
 				<tr>
-					<td><a href="https://ddosecrets.com/wiki/${row['name']}">${row["shortname"]}</a></td>
+					<td><a href="https://ddosecrets.org/wiki/${row['name']}">${row["shortname"]}</a></td>
 					<td><a href="${row['magnet']}">LINK</a></td>
 					<td>${row["daily_trackers"]}</td>
 					<td>${row["weekly_trackers"]}</td>
