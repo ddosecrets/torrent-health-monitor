@@ -20,11 +20,12 @@ def shortName(name):
 	return name
 
 # Swaps forbidden characters for hyphens, strips "[Part X]", lowercase
-# Repeated hyphens are abbreviated to only one
+# Repeated hyphens are abbreviated to only one, trailing hyphens removed
 def urlName(name):
 	n = name.split("[")[0].rstrip()
-	n = re.sub("[_ \.\+/]", "-", n)
+	n = re.sub("[_ \.\+/@&'()]", "-", n)
 	n = re.sub("-+", "-", n)
+	n = re.sub("-$", "", n)
 	return n.lower()
 
 def loadSummary():
