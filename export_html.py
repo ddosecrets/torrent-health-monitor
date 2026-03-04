@@ -19,8 +19,9 @@ def shortName(name):
 		return name[0:MAXLENGTH-1] + "…"
 	return name
 
+# Swaps spaces and underscores for hyphens, strips "[Part X]", lowercase
 def urlName(name):
-	return name.replace("_", "-").replace(" ", "-").lower()
+	return name.replace("_", "-").replace(" ", "-").split("[")[0].rstrip().lower()
 
 def loadSummary():
 	rows = []
