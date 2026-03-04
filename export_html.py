@@ -20,7 +20,7 @@ def shortName(name):
 	return name
 
 def urlName(name):
-	return name.replace("_", "-").lower()
+	return name.replace("_", "-").replace(" ", "-").lower()
 
 def loadSummary():
 	rows = []
