@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime, json, os
+import datetime, json, os, re
 from mako.template import Template
 from database import database
 
@@ -20,11 +20,11 @@ def shortName(name):
 	return name
 
 # Swaps forbidden characters for hyphens, strips "[Part X]", lowercase
+# Repeated hyphens are abbreviated to only one
 def urlName(name):
 	n = name.split("[")[0].rstrip()
-	forbidden = ["_", " ", "."]
-	for f in forbidden:
-		n = n.replace(f, "-")
+	n = re.sub("[_ \.\+/]", "-", n)
+	n = re.sub("-+", "-", n)
 	return n.lower()
 
 def loadSummary():
