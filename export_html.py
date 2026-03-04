@@ -19,6 +19,9 @@ def shortName(name):
 		return name[0:MAXLENGTH-1] + "…"
 	return name
 
+def urlName(name):
+	return name.replace("_", "-").lower()
+
 def loadSummary():
 	rows = []
 	mostrecent = None
@@ -32,6 +35,7 @@ def loadSummary():
 			for i,n in enumerate(FIELDS):
 				row[n] = r[i]
 			row["shortname"] = shortName(row["name"])
+			row["name"] = urlName(row["name"])
 			rows.append(row)
 	return (mostrecent, rows)
 
